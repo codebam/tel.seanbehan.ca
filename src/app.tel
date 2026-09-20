@@ -1,0 +1,40 @@
+# app.tel — the browser island. Compiled with `--target web`: top-level
+# bindings inside `web fn` become signals, and reads re-render the DOM.
+# It shares content, highlighting and the token estimator with the Worker.
+
+import "./content.tel" as c
+import "./highlight.tel" as hl
+import "./estimate.tel" as est
+
+fn samplePanel(s) -> Any:
+  h("div", {class: "tour-panel"},
+    h("div", {class: "sample-head"},
+      h("span", {class: "chip"}, s.label),
+      h("span", {class: "sample-title"}, s.title),
+      h("span", {class: "sample-tokens"}, "{s.tokens} cl100k tokens")),
+    h("p", {class: "sample-blurb"}, s.blurb),
+    h("pre", {class: "code-body"}, h("code", hl.highlight(s.code))),
+    h("p", {class: "sample-run"}, h("code", s.run)))
+
+web fn App():
+  active = 0
+  source = ""
+  result = est.stats("")
+  h("div", {class: "tour-live"},
+    h("div", {class: "tour-tabs", role: "tablist"},
+      [button({class: ["tab", "is-active" if i == active else ""],
+        type: "button",
+        role: "tab",
+        onclick: () => active = i}, s.label) for (i, s) in c.tourSamples().enumerate()]),
+    h("div", {class: "tour-panels"},
+      [samplePanel(s) if i == active else nil for (i, s) in c.tourSamples().enumerate()]),
+    h("form", {class: "estimator", onsubmit: (e) => { e.preventDefault(); source = e.target.code.value; result = est.stats(source) }},
+      h("label", {class: "field"},
+        h("span", {class: "field-label"}, "Paste a snippet — the same estimator powers /api/estimate"),
+        h("textarea", {name: "code", value: source, rows: 5, placeholder: "fn main():\n  print(\"hello from Tel\")"})),
+      h("div", {class: "estimate-row"},
+        button({class: "btn btn-primary", type: "submit"}, "Estimate tokens"),
+        h("span", {class: "estimate-out"},
+          h("strong", "{result.approxTokens}"),
+          " tokens · {result.chars} chars · {result.lines} lines")),
+      h("p", {class: "fineprint"}, result.note)))

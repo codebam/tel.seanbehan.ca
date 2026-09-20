@@ -1,0 +1,5 @@
+# The site source lives in src/*.tel. Build and serve it with:
+#   npm run dev     # compile and serve on http://127.0.0.1:8787
+#   npm run build   # compile the Worker and the browser island
+fn main():
+  print("tel.seanbehan.ca — run `npm run dev` to build and serve.")

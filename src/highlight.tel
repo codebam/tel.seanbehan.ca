@@ -1,0 +1,97 @@
+# highlight.tel — a tiny Tel syntax highlighter used by both the Worker's SSR
+# pass and the browser island. It emits vnodes, so the same function renders
+# server-side through html() and client-side through the DOM builder.
+
+keywords = [
+  "fn", "type", "enum", "pub", "import", "as", "if", "elif", "else", "for",
+  "in", "while", "match", "return", "break", "continue", "defer", "try",
+  "catch", "finally", "throw", "spawn", "await", "and", "or", "not", "is",
+  "web", "async", "self", "nil", "true", "false"
+]
+
+types = [
+  "Num", "Int", "Str", "Bool", "Nil", "Any", "Void", "Never", "List", "Map",
+  "Fn", "Result", "Error", "Task", "Range", "Tuple", "Record"
+]
+
+fn isWordChar(c: Str) -> Bool:
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_".includes(c)
+
+fn isDigit(c: Str) -> Bool:
+  "0123456789".includes(c)
+
+fn isSpace(c: Str) -> Bool:
+  " \t\r".includes(c)
+
+fn tok(cls: Str, text: Str) -> Any:
+  h("span", {class: cls}, text)
+
+fn commentAt(line: Str) -> Num:
+  i = 0
+  quote = ""
+  escaped = false
+  while i < len(line):
+    c = line[i]
+    if quote != "":
+      if escaped: escaped = false
+      elif c == "\\": escaped = true
+      elif c == quote: quote = ""
+    elif c == '"' or c == "'":
+      quote = c
+    elif c == "#":
+      return i
+    i += 1
+  -1
+
+fn tokenize(s: Str) -> Any:
+  out = []
+  i = 0
+  n = len(s)
+  while i < n:
+    c = s[i]
+    if isSpace(c):
+      j = i
+      while j < n and isSpace(s[j]): j += 1
+      out.push(s[i..j])
+      i = j
+    elif c == '"' or c == "'":
+      q = c
+      j = i + 1
+      while j < n:
+        if s[j] == "\\": j += 2
+        elif s[j] == q:
+          j += 1
+          break
+        else: j += 1
+      out.push(tok("tok-str", s[i..j]))
+      i = j
+    elif isDigit(c):
+      j = i
+      while j < n and "0123456789._xXbBoOeEabcdefABCDEF".includes(s[j]): j += 1
+      out.push(tok("tok-num", s[i..j]))
+      i = j
+    elif isWordChar(c):
+      j = i
+      while j < n and isWordChar(s[j]): j += 1
+      w = s[i..j]
+      if keywords.contains(w): out.push(tok("tok-kw", w))
+      elif types.contains(w): out.push(tok("tok-type", w))
+      elif j < n and s[j] == "(": out.push(tok("tok-fn", w))
+      else: out.push(w)
+      i = j
+    else:
+      out.push(tok("tok-punc", c))
+      i += 1
+  out
+
+pub fn highlight(source: Str) -> Any:
+  out = []
+  for line in source.lines():
+    idx = commentAt(line)
+    if idx >= 0:
+      out.push(tokenize(line[..idx]))
+      out.push(tok("tok-com", line[idx..]))
+    else:
+      out.push(tokenize(line))
+    out.push("\n")
+  out

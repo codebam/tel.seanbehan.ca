@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tel">
+  <rect width="64" height="64" rx="14" fill="#0a0f16"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#1d2a3b" stroke-width="2"/>
+  <path d="M14 20l14 12-14 12" fill="none" stroke="#5eead4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33 44h18" fill="none" stroke="#7dd3fc" stroke-width="6" stroke-linecap="round"/>
+</svg>

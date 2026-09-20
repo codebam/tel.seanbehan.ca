@@ -1,0 +1,15 @@
+# Build output
+dist/
+.wrangler-dry/
+.wrangler/
+
+# Generated browser bundles (public/assets/site.css, tel.svg and _headers are tracked)
+public/assets/*.mjs
+
+# Local scratch space
+scratch/
+.probe/
+
+# Node tooling
+node_modules/
+npm-debug.log*

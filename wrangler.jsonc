@@ -1,0 +1,23 @@
+{
+  // Marketing site for Tel: HTML, JSON APIs and a browser island, all compiled
+  // from src/*.tel into dist/worker-entry.mjs by scripts/build.mjs.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tel-seanbehan-ca",
+  "main": "dist/worker-entry.mjs",
+  "compatibility_date": "2026-09-20",
+  // Static assets are served by the Workers assets layer; /assets/* never
+  // reaches the Tel Worker unless the file is missing.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "SITE_NAME": "tel.seanbehan.ca"
+  },
+  // Deploying from the account that owns seanbehan.ca? Uncomment to bind the
+  // custom domain; `wrangler deploy` will create the DNS record for you.
+  "routes": [],
+  "observability": {
+    "enabled": true
+  }
+}

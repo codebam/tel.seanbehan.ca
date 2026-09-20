@@ -1,0 +1,30 @@
+# estimate.tel — a small, dependency-free token proxy shared by the Worker API
+# and the browser island. It is deliberately not a BPE tokenizer: it groups
+# runs of identifier characters and runs of punctuation, then estimates with
+# the usual ~4-chars-per-token / ~2-chars-per-operator ratios observed in code.
+# Exact cl100k counts come from the toolchain: `tel tokens FILE`.
+
+fn charClass(c: Str) -> Num:
+  if "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_".includes(c): 1
+  elif " \t\r\n".includes(c): 0
+  else: 2
+
+pub fn stats(source: Str) -> Any:
+  chars = len(source)
+  lines = 0 if chars == 0 else len(source.lines())
+  tokens = 0
+  i = 0
+  while i < chars:
+    kind = charClass(source[i])
+    j = i
+    while j < chars and charClass(source[j]) == kind: j += 1
+    run = j - i
+    if kind == 1: tokens += ceil(run / 4)
+    elif kind == 2: tokens += ceil(run / 2)
+    i = j
+  {
+    chars: chars,
+    lines: lines,
+    approxTokens: tokens,
+    note: "Rough code-aware estimate. Exact cl100k counts: tel tokens FILE."
+  }

@@ -1,0 +1,320 @@
+# site.tel — the marketing page, built as vnodes and rendered to HTML.
+# The same web-target runtime provides html(), h() and the tag DSL to the
+# Worker (SSR) and to the browser island (DOM), so components stay shared.
+
+import "./content.tel" as c
+import "./highlight.tel" as hl
+
+fn span(cls: Str, text: Str) -> Any:
+  h("span", {class: cls}, text)
+
+fn sectionHeading(kicker: Str, title: Str, lede: Str) -> Any:
+  h("div", {class: "section-head"},
+    h("p", {class: "kicker"}, kicker),
+    h("h2", title),
+    h("p", {class: "section-lede"}, lede))
+
+fn codeBadge(badge) -> Any:
+  if badge == nil: nil
+  else: span("code-badge", badge)
+
+fn codeCard(title: Str, src: Str, badge = nil) -> Any:
+  h("figure", {class: "code-card"},
+    h("figcaption", {class: "code-head"},
+      h("span", {class: "dots"}, h("i"), h("i"), h("i")),
+      span("code-title", title),
+      codeBadge(badge)),
+    h("pre", {class: "code-body"}, h("code", hl.highlight(src))))
+
+fn nav() -> Any:
+  h("header", {class: "site-header"},
+    h("nav", {class: "container nav"},
+      h("a", {class: "brand", href: "/"},
+        span("brand-prompt", ">"),
+        span("brand-name", "tel")),
+      h("div", {class: "nav-links"},
+        h("a", {href: "#why"}, "Why"),
+        h("a", {href: "#tour"}, "Syntax"),
+        h("a", {href: "#tokens"}, "Tokens"),
+        h("a", {href: "#quickstart"}, "Quickstart"),
+        h("a", {class: "nav-gh", href: c.repoUrl(), rel: "noreferrer"}, "GitHub"))))
+
+fn hero() -> Any:
+  h("section", {class: "hero", id: "top"},
+    h("div", {class: "container hero-grid"},
+      h("div", {class: "hero-copy"},
+        h("p", {class: "eyebrow"}, "v0.2 · MIT · zero-install CLI"),
+        h("h1",
+          "The token-efficient language for ",
+          h("em", "AI-authored code"),
+          "."),
+        h("p", {class: "lede"},
+          "Tel gives coding agents one compact surface for CLIs, HTTP APIs and browser UIs — ",
+          "Python-style layout, real JavaScript interop, and a 2,193-token guide that fits in context."),
+        h("div", {class: "cta-row"},
+          h("a", {class: "btn btn-primary", href: "#quickstart"}, "Get started"),
+          h("a", {class: "btn btn-ghost", href: c.repoUrl(), rel: "noreferrer"}, "View the source")),
+        h("p", {class: "install-line"},
+          h("span", {class: "install-prompt"}, "$"),
+          h("code", "npx @codebam/tel init")),
+        h("ul", {class: "hero-facts"},
+          h("li", "Interpreter + TS/JS/browser compilers"),
+          h("li", "Installed npm packages stay available"),
+          h("li", "Machine-checked agent guide"))),
+      codeCard("api.tel", c.heroCode(), "121 cl100k tokens")))
+
+fn metricCard(m) -> Any:
+  h("div", {class: "metric"},
+    h("div", {class: "metric-value"}, m.value),
+    h("div", {class: "metric-label"}, m.label),
+    h("div", {class: "metric-note"}, m.note))
+
+fn metricBand() -> Any:
+  h("section", {class: "metrics", "aria-label": "Tel by the numbers"},
+    h("div", {class: "container metric-grid"},
+      [metricCard(m) for m in c.metrics()]))
+
+fn featureCard(f) -> Any:
+  h("article", {class: "feature"},
+    h("p", {class: "feature-kicker"}, f.kicker),
+    h("h3", f.title),
+    h("p", f.body))
+
+fn whySection() -> Any:
+  h("section", {class: "section", id: "why"},
+    h("div", {class: "container"},
+      sectionHeading("Why Tel", "Less ceremony. More context.",
+        "Tel is designed for the way agents actually write code: a tiny guide, dense but explicit syntax, and a standard library that removes boilerplate."),
+      h("div", {class: "feature-grid"},
+        [featureCard(f) for f in c.features()])))
+
+fn sampleCard(s) -> Any:
+  h("article", {class: "sample"},
+    h("div", {class: "sample-head"},
+      span("chip", s.label),
+      span("sample-title", s.title),
+      span("sample-tokens", "{s.tokens} cl100k tokens")),
+    h("p", {class: "sample-blurb"}, s.blurb),
+    h("pre", {class: "code-body sample-code"}, h("code", hl.highlight(s.code))),
+    h("p", {class: "sample-run"}, h("code", s.run)))
+
+fn staticTour() -> Any:
+  h("div", {class: "tour-static"},
+    [sampleCard(s) for s in c.tourSamples()])
+
+fn tourSection() -> Any:
+  h("section", {class: "section alt", id: "tour"},
+    h("div", {class: "container"},
+      sectionHeading("Syntax", "A whole language, one guide",
+        "Five representative programs. The exact snippets below are counted with the same cl100k_base tokenizer used in the benchmark."),
+      h("div", {class: "tour-root", id: "app"},
+        h("noscript", h("p", {class: "muted"}, "The interactive tour needs JavaScript — every sample is shown below.")),
+        staticTour())))
+
+fn numCell(value: Num, strong: Bool = false) -> Any:
+  if strong: h("td", {class: "num strong"}, value)
+  else: h("td", {class: "num"}, value)
+
+fn barCell(a: Num, b: Num) -> Any:
+  pct = round(100 * a / b)
+  h("td", {class: "bar-cell"},
+    h("progress", {value: a, max: b, "aria-label": "Tel uses {pct}% of the TypeScript token count"}),
+    span("bar-pct", "{pct}%"))
+
+fn benchRow(r) -> Any:
+  h("tr",
+    h("td", r.name),
+    numCell(r.tel, true),
+    numCell(r.python),
+    numCell(r.ts),
+    barCell(r.tel, r.ts))
+
+fn benchV02Row(r) -> Any:
+  h("tr",
+    h("td", r.name),
+    numCell(r.tel, true),
+    numCell(r.ts),
+    barCell(r.tel, r.ts))
+
+fn baseTable() -> Any:
+  t = c.benchmarkTotals().base
+  h("table", {class: "bench"},
+    h("thead", h("tr",
+      h("th", "Program"),
+      h("th", {class: "num"}, "Tel"),
+      h("th", {class: "num"}, "Python"),
+      h("th", {class: "num"}, "TypeScript"),
+      h("th", {class: "bar-col"}, "Tel share of TS"))),
+    h("tbody",
+      [benchRow(r) for r in c.benchmarkBase()],
+      h("tr", {class: "total"},
+        h("td", t.name),
+        numCell(t.tel, true),
+        numCell(t.python),
+        numCell(t.ts),
+        barCell(t.tel, t.ts))))
+
+fn v02Table() -> Any:
+  t = c.benchmarkTotals().v02
+  h("table", {class: "bench"},
+    h("thead", h("tr",
+      h("th", "v0.2 program"),
+      h("th", {class: "num"}, "Tel"),
+      h("th", {class: "num"}, "TypeScript"),
+      h("th", {class: "bar-col"}, "Tel share of TS"))),
+    h("tbody",
+      [benchV02Row(r) for r in c.benchmarkV02()],
+      h("tr", {class: "total"},
+        h("td", t.name),
+        numCell(t.tel, true),
+        numCell(t.ts),
+        barCell(t.tel, t.ts))))
+
+fn tokenSection() -> Any:
+  a = c.benchmarkTotals().all
+  h("section", {class: "section", id: "tokens"},
+    h("div", {class: "container"},
+      sectionHeading("Token efficiency", "Fewer tokens per program",
+        "Exact cl100k_base BPE counts over equivalent programs that were all executed and compared. Lower is cheaper, and cheaper means more room for the actual task."),
+      h("div", {class: "token-hero"},
+        h("div", {class: "token-stat"},
+          h("div", {class: "token-number"}, a.tel),
+          h("div", {class: "token-label"}, "Tel tokens")),
+        h("div", {class: "token-vs"}, "vs"),
+        h("div", {class: "token-stat dim"},
+          h("div", {class: "token-number"}, a.ts),
+          h("div", {class: "token-label"}, "TypeScript tokens")),
+        h("div", {class: "token-delta"}, "-{a.savings}")),
+      h("div", {class: "table-wrap"}, baseTable()),
+      h("div", {class: "table-wrap"}, v02Table()),
+      h("p", {class: "fineprint"},
+        "Six equivalent programs, counted with the exact cl100k_base tokenizer in ",
+        h("code", "tools/tokcount.mjs"),
+        ". Methodology and per-file counts live in ",
+        h("code", "docs/TOKENS.md"),
+        ". The 2,193-token agent guide is budgeted at 2,200 and contract-tested.")))
+
+fn stepCard(s) -> Any:
+  h("article", {class: "step"},
+    h("div", {class: "step-num"}, s.n),
+    h("h3", s.title),
+    h("p", {class: "step-note"}, s.note),
+    h("pre", {class: "code-body small"}, h("code", hl.highlight(s.code))))
+
+fn quickstartSection() -> Any:
+  h("section", {class: "section alt", id: "quickstart"},
+    h("div", {class: "container"},
+      sectionHeading("Quickstart", "From clone to running in a minute",
+        "Tel is published as @codebam/tel, so npx runs it with zero project dependencies. tel init also installs AGENTS.md, so your agent picks up the language contract automatically."),
+      h("div", {class: "steps"},
+        [stepCard(s) for s in c.quickstart()])))
+
+fn agentSection() -> Any:
+  h("section", {class: "section", id: "agents"},
+    h("div", {class: "container narrow"},
+      sectionHeading("For agents", "The one prompt that works everywhere",
+        "Paste this into your coding agent before it writes any Tel. The guide is small enough to stay in context and every fenced snippet in it executes in CI."),
+      codeCard("agent-instructions.txt", c.prompt(), "the contract"),
+      h("ul", {class: "checks"},
+        h("li", h("strong", "Zero-install"), " — npx @codebam/tel runs the published package; there is no global toolchain to maintain."),
+        h("li", h("strong", "2,193 tokens"), " — measured with cl100k_base and budgeted to fit alongside real work."),
+        h("li", h("strong", "Executable"), " — 10/10 guide snippets and 26/26 SPEC snippets run in the test suite."),
+        h("li", h("strong", "Machine-checked"), " — tel check gives file:line:col diagnostics; tel fmt keeps code canonical."),
+        h("li", h("strong", "Conventional"), " — AGENTS.md is auto-ingested by Codex, opencode and other agent harnesses; symlink it for Claude Code, Cursor, Windsurf and Aider."))))
+
+fn dogfoodCard(kicker: Str, title: Str, body: Str) -> Any:
+  h("article", {class: "feature dogfood"},
+    h("p", {class: "feature-kicker"}, kicker),
+    h("h3", title),
+    h("p", body))
+
+fn siteSection() -> Any:
+  h("section", {class: "section alt", id: "site"},
+    h("div", {class: "container"},
+      sectionHeading("Dogfooding", "This site is Tel too",
+        "Every dynamic byte here — HTML, JSON and the browser island — is compiled from .tel source and runs at the edge."),
+      h("div", {class: "feature-grid"},
+        dogfoodCard("SSR", "Pages rendered in Tel",
+          "The Worker matches routes in Tel, builds vnodes with the call-style DSL, runs them through html(), and returns a Response."),
+        dogfoodCard("API", "JSON APIs in Tel",
+          "Health, benchmarks and the token estimator are Tel functions. The estimator is the exact same module the browser island imports."),
+        dogfoodCard("Client", "The browser runs Tel",
+          "The interactive tour is a web fn component compiled with --target web. Signal writes re-render the DOM; there is no framework underneath."))))
+
+fn faqItem(f) -> Any:
+  h("details", {class: "faq"},
+    h("summary", f.q),
+    h("p", f.a))
+
+fn faqSection() -> Any:
+  h("section", {class: "section", id: "faq"},
+    h("div", {class: "container narrow"},
+      sectionHeading("FAQ", "Questions, answered",
+        "Everything below is verifiable from the repository and the measured results on this page."),
+      h("div", {class: "faq-list"}, [faqItem(f) for f in c.faqs()])))
+
+fn footer() -> Any:
+  h("footer", {class: "site-footer"},
+    h("div", {class: "container footer-grid"},
+      h("div", {class: "footer-brand"},
+        span("brand-prompt", ">"),
+        span("brand-name", "tel"),
+        h("p", "A token-efficient language for AI-authored code."),
+        h("p", {class: "fineprint"}, "MIT · v0.2")),
+      h("div", {class: "footer-links"},
+        h("a", {href: c.repoUrl(), rel: "noreferrer"}, "GitHub"),
+        h("a", {href: "#why"}, "Why Tel"),
+        h("a", {href: "#tour"}, "Syntax"),
+        h("a", {href: "#tokens"}, "Tokens"),
+        h("a", {href: "#faq"}, "FAQ")),
+      h("div", {class: "footer-note"},
+        h("p", "Built with Tel: SSR, APIs and the browser island are compiled .tel source."),
+        h("p", "Runs on Cloudflare Workers with no Node compatibility flags."))))
+
+pub fn home() -> Any:
+  h("html", {lang: "en"},
+    head(),
+    h("body",
+      nav(),
+      h("main",
+        hero(),
+        metricBand(),
+        whySection(),
+        tourSection(),
+        tokenSection(),
+        quickstartSection(),
+        agentSection(),
+        siteSection(),
+        faqSection()),
+      footer()))
+
+pub fn notFound(path: Str) -> Any:
+  h("html", {lang: "en"},
+    head(),
+    h("body",
+      nav(),
+      h("main", {class: "container notfound"},
+        h("p", {class: "kicker"}, "404"),
+        h("h1", "No route for ", h("code", path)),
+        h("p", {class: "lede"}, "The Worker matched this request against its Tel routes and found nothing. Try the home page."),
+        h("a", {class: "btn btn-primary", href: "/"}, "Back to Tel")),
+      footer()))
+
+fn head() -> Any:
+  desc = "Tel is a small, token-efficient language for AI-authored code: Python-style layout, JavaScript/npm interop, a 2,193-token agent guide, and compilers to TypeScript, JavaScript and the browser."
+  h("head",
+    h("meta", {charset: "utf-8"}),
+    h("meta", {name: "viewport", content: "width=device-width, initial-scale=1"}),
+    h("title", "Tel — the token-efficient language for AI-authored code"),
+    h("meta", {name: "description", content: desc}),
+    h("meta", {name: "theme-color", content: "#0a0f16"}),
+    h("link", {rel: "canonical", href: c.siteUrl() + "/"}),
+    h("link", {rel: "icon", type: "image/svg+xml", href: "/assets/tel.svg"}),
+    h("link", {rel: "stylesheet", href: "/assets/site.css"}),
+    h("meta", {property: "og:type", content: "website"}),
+    h("meta", {property: "og:title", content: "Tel — the token-efficient language for AI-authored code"}),
+    h("meta", {property: "og:description", content: desc}),
+    h("meta", {property: "og:url", content: c.siteUrl() + "/"}),
+    h("meta", {property: "og:site_name", content: "Tel"}),
+    h("meta", {name: "twitter:card", content: "summary"}),
+    h("script", {type: "module", src: "/assets/app.mjs"}))

@@ -1,0 +1,20 @@
+{
+  "name": "tel-seanbehan-ca",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Marketing site for Tel — written in Tel, compiled to a Cloudflare Worker. Run the language with npx @codebam/tel.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "node scripts/build.mjs --check-only",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs && node scripts/dev.mjs",
+    "start": "node scripts/dev.mjs",
+    "test": "node scripts/build.mjs && node --test test/",
+    "deploy": "node scripts/build.mjs && wrangler deploy",
+    "dry-run": "node scripts/build.mjs && wrangler deploy --dry-run --outdir .wrangler-dry"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.0"
+  }
+}

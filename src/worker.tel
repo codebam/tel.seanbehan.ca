@@ -1,0 +1,95 @@
+# worker.tel — the Cloudflare Worker. Compiled with `--target web` and wrapped
+# by a generated ESM entry (see scripts/build.mjs). All routing, SSR, JSON
+# serialization and caching decisions live here, in Tel.
+
+import "./worker-globals.mjs" {Response, runtime}
+import "./site.tel" as site
+import "./content.tel" as content
+import "./estimate.tel" as estimate
+
+fn securityHeaders(ct: Str, cache: Str = "public, max-age=300") -> Any:
+  {
+    "content-type": ct,
+    "cache-control": cache,
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=()",
+    "content-security-policy": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  }
+
+fn htmlResponse(body: Str, status: Num = 200) -> Any:
+  new Response("<!doctype html>\n" + body, {
+    status: status,
+    headers: securityHeaders("text/html; charset=utf-8")
+  })
+
+fn jsonResponse(body, status: Num = 200) -> Any:
+  new Response(JSON.stringify(body), {
+    status: status,
+    headers: securityHeaders("application/json; charset=utf-8", "no-store")
+  })
+
+fn textResponse(body: Str, ct: Str, status: Num = 200, cache: Str = "public, max-age=3600") -> Any:
+  new Response(body, {
+    status: status,
+    headers: securityHeaders(ct, cache)
+  })
+
+fn sitemapXml() -> Str:
+  lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '  <url><loc>' + content.siteUrl() + '/</loc></url>',
+    '</urlset>'
+  ]
+  lines.join("\n") + "\n"
+
+async fn estimatePost(req) -> Any:
+  body = await req.text()
+  estimate.stats(body)
+
+async fn handle(req, env) -> Any:
+  url = new URL(req.url)
+  path = url.pathname
+  method = "GET" if req.method == "HEAD" else req.method
+  if method == "GET" and path == "/":
+    htmlResponse(html(site.home()))
+  elif method == "GET" and path == "/api/health":
+    jsonResponse({
+      ok: true,
+      service: "tel.seanbehan.ca",
+      language: "tel",
+      version: "0.2",
+      runtime: runtime,
+      site: env.SITE_NAME ?? "tel"
+    })
+  elif method == "GET" and path == "/api/benchmarks":
+    jsonResponse({
+      base: content.benchmarkBase(),
+      v02: content.benchmarkV02(),
+      totals: content.benchmarkTotals()
+    })
+  elif method == "GET" and path == "/api/estimate":
+    jsonResponse(estimate.stats(url.searchParams.get("text") ?? ""))
+  elif method == "POST" and path == "/api/estimate":
+    jsonResponse(await estimatePost(req))
+  elif method == "GET" and path == "/robots.txt":
+    textResponse("User-agent: *\nAllow: /\nSitemap: " + content.siteUrl() + "/sitemap.xml\n", "text/plain; charset=utf-8")
+  elif method == "GET" and path == "/sitemap.xml":
+    textResponse(sitemapXml(), "application/xml; charset=utf-8")
+  elif path.startsWith("/assets/"):
+    new Response("asset not found", {status: 404, headers: securityHeaders("text/plain; charset=utf-8", "no-store")})
+  else:
+    htmlResponse(html(site.notFound(path)), 404)
+
+pub async fn fetch(req, env = nil, ctx = nil):
+  try:
+    response = await handle(req, env ?? {})
+    if req.method == "HEAD":
+      new Response(nil, {status: response.status, headers: response.headers})
+    else:
+      response
+  catch e:
+    console.error("tel worker error:", str(e))
+    jsonResponse({ok: false, error: "internal error"}, 500)

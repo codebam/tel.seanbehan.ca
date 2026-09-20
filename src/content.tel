@@ -1,0 +1,255 @@
+# content.tel — copy, code samples and benchmark data for the Tel site.
+# Snippets live line-by-line in single-quoted strings, so `{` stays literal and
+# nothing interpolates. Exact cl100k_base counts were measured with
+# `node tools/tokcount.mjs` (see the Tel repo's docs/TOKENS.md, v0.2).
+
+fn code(...ls) -> Str:
+  ls.join("\n")
+
+pub fn siteUrl() -> Str = "https://tel.seanbehan.ca"
+pub fn repoUrl() -> Str = "https://github.com/codebam/tel"
+pub fn guideTokens() -> Num = 2193
+
+pub fn prompt() -> Str:
+  code(
+    'Read AGENTS.md first and follow it. Write new application code in Tel (.tel),',
+    'not TypeScript. Use `npx @codebam/tel run FILE` to execute and',
+    '`npx @codebam/tel check FILE` before you finish. If you need details',
+    'beyond AGENTS.md, read docs/SPEC.md.')
+
+pub fn heroCode() -> Str:
+  code(
+    'import std.http as http',
+    '',
+    'type User = {id: Num, name: Str}',
+    '',
+    'fn route(req):',
+    '  match req.path:',
+    '    "/api/users": [User(id=1, name="ada")]',
+    '    "/api/sum":',
+    '      n = int(req.query.n ?? "0")',
+    '      {sum: (1..=n).sum()}',
+    '    _: http.res(404, {error: "not found"})',
+    '',
+    'async fn main():',
+    '  server = await http.serve(int(env.get("PORT", "0")), route)',
+    '  print("listening on :{server.port}")',
+    '  server')
+
+pub fn snipCli() -> Str:
+  code(
+    'fn main(args):',
+    '  name = args[0] ?? "world"',
+    '  print("hello, {name}")')
+
+pub fn snipServer() -> Str:
+  code(
+    'import std.http as http',
+    '',
+    'async fn handle(req):',
+    '  match req.path:',
+    '    "/health": {ok: true}',
+    '    "/sum": {sum: (0..=int(req.query.n ?? "0")).sum()}',
+    '    _: http.res(404, "not found")',
+    '',
+    'async fn main():',
+    '  server = await http.serve(int(env.get("PORT", args[0] ?? "0")), req => handle(req))',
+    '  print("bound {server.port}")',
+    '  server')
+
+pub fn snipWeb() -> Str:
+  code(
+    'web fn App():',
+    '  n = 0',
+    '  div(class="app",',
+    '    h1("Counter ", n),',
+    '    button(onclick=() => n += 1, "+"))')
+
+pub fn snipShapes() -> Str:
+  code(
+    'type Shape = Circle(r: Num) | Rect(w: Num, h: Num)',
+    '',
+    'fn area(s: Shape) -> Num:',
+    '  match s:',
+    '    Circle(r): 3.14159 * r * r',
+    '    Rect(w, h): w * h',
+    '',
+    'print(area(Circle(2)), area(Rect(3, 4)))')
+
+pub fn snipPipeline() -> Str:
+  code(
+    'import std.{json}',
+    '',
+    'xs = [3, 1, 4, 1, 5]',
+    'evens = xs.filter(_ % 2 == 0).map(_ * 10)',
+    'print(json.stringify({count: len(xs), max: xs.max(), evens: evens}))')
+
+pub fn metrics() -> Any:
+  [
+    {value: "2,193", label: "tokens in the agent guide", note: "budgeted at 2,200 · contract-tested"},
+    {value: "-28.9%", label: "cl100k tokens vs TypeScript", note: "540 vs 759 across six equivalent programs"},
+    {value: "3", label: "ways to run Tel", note: "tree-walk interpreter · typed ESM · browser bundle"},
+    {value: "0", label: "npm dependencies", note: "one command: npx @codebam/tel"}
+  ]
+
+pub fn features() -> Any:
+  [
+    {
+      kicker: "01",
+      title: "Small enough to stay in context",
+      body: "The whole onboarding surface is one 2,193-token AGENTS.md. Every fenced snippet in it executes in CI, so stale examples cannot survive."
+    },
+    {
+      kicker: "02",
+      title: "Token-lean syntax",
+      body: "Python-style layout, ambient bindings, underscore placeholders, pipelines and pattern matching remove ceremony without hiding the shape of the program."
+    },
+    {
+      kicker: "03",
+      title: "JavaScript and npm interop",
+      body: "Import npm packages and Node builtins, use native prototypes, pass Tel lambdas as JS arrows and await promises — under run, --target js and --target ts."
+    },
+    {
+      kicker: "04",
+      title: "One language, three targets",
+      body: "Run it with the tree-walk interpreter, compile typed ESM for Node, or build a reactive browser bundle with the call-style view DSL."
+    },
+    {
+      kicker: "05",
+      title: "Patterns, sums, results",
+      body: "match with destructuring and guards, variant types, Result with ? and ??, plus a stdlib that ships http, json, fs, env and time."
+    },
+    {
+      kicker: "06",
+      title: "A feedback loop for agents",
+      body: "npx @codebam/tel check reports file:line:col for undefined names, arity and scope mistakes. The same CLI reformats code and counts exact cl100k tokens."
+    }
+  ]
+
+pub fn tourSamples() -> Any:
+  [
+    {
+      id: "cli",
+      label: "CLI tool",
+      title: "One-line entry point",
+      blurb: "The interpreter calls fn main(args). Strings interpolate; nil falls back with ??.",
+      tokens: 23,
+      run: "npx @codebam/tel run app.tel -- ada",
+      code: snipCli()
+    },
+    {
+      id: "server",
+      label: "HTTP JSON API",
+      title: "The stdlib is the framework",
+      blurb: "std.http serves async handlers. Returning an object sends JSON; http.res overrides.",
+      tokens: 98,
+      run: "PORT=8080 npx @codebam/tel run app.tel",
+      code: snipServer()
+    },
+    {
+      id: "web",
+      label: "Browser component",
+      title: "Signals in the view DSL",
+      blurb: "Top-level bindings inside web fn become signals. Reads re-render; writes in handlers update the DOM.",
+      tokens: 38,
+      run: "npx @codebam/tel build app.tel --target web -o app.mjs",
+      code: snipWeb()
+    },
+    {
+      id: "shapes",
+      label: "Types & patterns",
+      title: "Sums and destructuring",
+      blurb: "Variant types, match arms and guards. No exhaustiveness bugs hiding in a switch fallthrough.",
+      tokens: 70,
+      run: "npx @codebam/tel run app.tel",
+      code: snipShapes()
+    },
+    {
+      id: "pipeline",
+      label: "Data pipeline",
+      title: "Collections, composed",
+      blurb: "Comprehensions, UFCS methods and placeholder lambdas keep data code dense and readable.",
+      tokens: 61,
+      run: "npx @codebam/tel run app.tel",
+      code: snipPipeline()
+    }
+  ]
+
+pub fn benchmarkBase() -> Any:
+  [
+    {name: "FizzBuzz", tel: 58, python: 59, ts: 74},
+    {name: "List pipeline", tel: 78, python: 98, ts: 100},
+    {name: "HTTP JSON handler", tel: 104, python: 264, ts: 210}
+  ]
+
+pub fn benchmarkV02() -> Any:
+  [
+    {name: "Typed record pipeline", tel: 89, ts: 124},
+    {name: "Async load", tel: 47, ts: 52},
+    {name: "Route dispatcher", tel: 164, ts: 199}
+  ]
+
+pub fn benchmarkTotals() -> Any:
+  {
+    base: {name: "Base three", tel: 240, python: 421, ts: 384},
+    v02: {name: "v0.2 three", tel: 300, ts: 375},
+    all: {name: "All six", tel: 540, ts: 759, python: 421, savings: "28.9%"}
+  }
+
+pub fn quickstart() -> Any:
+  [
+    {
+      n: "1",
+      title: "Start a project",
+      note: "Nothing to install globally: npx fetches the published @codebam/tel package. tel init writes main.tel and the 2,193-token AGENTS.md contract.",
+      code: code('mkdir app && cd app', 'npx @codebam/tel init')
+    },
+    {
+      n: "2",
+      title: "Run it",
+      note: "The interpreter calls fn main(args). No build step and no dependencies to wire up.",
+      code: code('npx @codebam/tel run main.tel -- world')
+    },
+    {
+      n: "3",
+      title: "Check and build",
+      note: "Static diagnostics in file:line:col, then typed ESM for Node or a browser bundle with --target web.",
+      code: code('npx @codebam/tel check main.tel', 'npx @codebam/tel build main.tel --target ts --outdir out')
+    }
+  ]
+
+pub fn faqs() -> Any:
+  [
+    {
+      q: "How do I run it?",
+      a: "Install Node >= 20 and run npx @codebam/tel. The published package is @codebam/tel, so there is no global install: npx @codebam/tel init writes main.tel plus the AGENTS.md guide, and npx @codebam/tel run main.tel executes it."
+    },
+    {
+      q: "Is Tel production-ready?",
+      a: "Tel is v0.2. The runtime, compiler, checker and formatter are covered by a 94-test verification suite, and known limitations are documented. It is young, but already pleasant for small tools, APIs and prototypes."
+    },
+    {
+      q: "How is this different from just writing TypeScript?",
+      a: "TypeScript is one of Tel's compile targets. Tel adds a Python-style surface, a higher-level stdlib, built-in checking and token-lean idioms for AI-authored code, then emits typed ESM you can read, review and deploy."
+    },
+    {
+      q: "Can I use npm packages?",
+      a: "Yes. Default, named and namespace imports work, Tel lambdas are JavaScript arrows, and await works on promises. Packages must be installed exactly as in Node; the Tel toolchain itself needs none."
+    },
+    {
+      q: "Does it run on Cloudflare Workers?",
+      a: "This site does. Tel compiles to a standalone ESM module; a small generated wrapper turns its exported fetch handler into a Worker default export. The HTML you are reading, the JSON APIs and the browser island are all compiled from Tel."
+    },
+    {
+      q: "How big is a compiled program?",
+      a: "Each compiled file inlines the shared runtime, so a hello-world bundle is roughly 28 KB before gzip. There are no runtime npm dependencies, and the Worker here needs no Node compatibility flags."
+    },
+    {
+      q: "Is there tooling for agents?",
+      a: "Yes: npx @codebam/tel check gives file:line:col diagnostics, fmt canonicalizes layout, tokens reports exact cl100k_base counts, and init installs the AGENTS.md contract into a project."
+    },
+    {
+      q: "What is the license?",
+      a: "MIT."
+    }
+  ]
